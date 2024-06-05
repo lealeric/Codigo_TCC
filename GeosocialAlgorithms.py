@@ -8,6 +8,7 @@ import math
 import networkx as nx
 import math
 import utm
+from scipy.cluster.hierarchy import ward
 
 class GeoSocial():
     """
@@ -95,6 +96,25 @@ class GeoSocial():
         Calculates the geographic centroid of the graph.
         """
         return (np.mean(self.latitudes), np.mean(self.longitudes))
+    
+
+    def calculate_ward_dispersion(self, community):
+        coordinates = [(float(self.graph.nodes[node]['latitude']), float(self.graph.nodes[node]['longitude'])) for node in community]
+        distance_matrix = np.zeros((len(coordinates), len(coordinates)))
+
+        # Calculate pairwise distances between coordinates
+        for i in range(len(coordinates)):
+            for j in range(i+1, len(coordinates)):
+                distance_matrix[i, j] = self.calculate_distance_projected(coordinates[i][0], coordinates[i][1], coordinates[j][0], coordinates[j][1])
+                distance_matrix[j, i] = distance_matrix[i, j]
+
+        # Perform Ward's method clustering
+        linkage_matrix = ward(distance_matrix)
+
+        # Return the resulting linkage matrix
+        return linkage_matrix
+    
+        
         
     def geo_social_modularity(self, d: float = 0.1):
         """
