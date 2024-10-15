@@ -5,11 +5,11 @@ import seaborn as sns; sns.set_theme()
 import GeosocialAlgorithms as ga
 import matplotlib.pyplot as plt
 import networkx as nx
-# import numpy as np
-# import math
-# import json
+import numpy as np
+import math
+import json
 import utm
-# import csv
+import csv
 
 from sklearn.metrics.cluster import adjusted_mutual_info_score as ami
 from matplotlib.colors import LogNorm
@@ -253,12 +253,12 @@ def map_community_nodes(community: list) -> dict:
             
     return node_community_map
 
-def jaccard_similarity(community1: list, community2: list) -> float:
+def jaccard_similarity(community1: set, community2: set) -> float:
     """Calcula a similaridade de Jaccard entre duas comunidades.
 
     Args:
-        community1 (list): A primeira comunidade.
-        community2 (list): A segunda comunidade.
+        community1 (set): A primeira comunidade.
+        community2 (set): A segunda comunidade.
 
     Returns:
         float: O índice de similaridade de Jaccard.
@@ -484,11 +484,14 @@ if __name__ == '__main__':
             jaccard_matrix_erdos[i][j] = jaccard_similarity(set(com_social), set(com_geo))
 
     jaccard_values_erdos = jaccard_matrix_erdos[jaccard_matrix_erdos !=0]
+    
+    upper_limit_erdos = np.max(jaccard_values_erdos)*1.2
+    division_erdos = np.max(jaccard_values_erdos)/5
 
     plt.figure(figsize=(15, 6))
     plt.hist(jaccard_values_erdos, bins=100, color='lightgreen', edgecolor='black', log=True)
     plt.xlabel("Similaridade de Jaccard")
-    plt.xticks(np.arange(0, 0.2, 0.05), rotation=90)
+    plt.xticks(np.arange(0, upper_limit_erdos, division_erdos), rotation=90)
     plt.ylabel('Frequência (log)')
     plt.title('Distribuição da Similaridade de Jaccard')
     plt.savefig(f'D:\\Documentos\\data_and_code\\distribuicao_jaccard_erdos_{raio}.png', dpi=300, bbox_inches='tight')
@@ -556,10 +559,13 @@ if __name__ == '__main__':
             
     jaccard_values_watts = jaccard_matrix_watts[jaccard_matrix_watts !=0]
 
+    upper_limit_watts = np.max(jaccard_values_watts)*1.2
+    division_watts = np.max(jaccard_values_watts)/5
+
     plt.figure(figsize=(15, 6))
     plt.hist(jaccard_values_watts, bins=100, color='lightgreen', edgecolor='black', log=True)
     plt.xlabel("Similaridade de Jaccard")
-    plt.xticks(np.arange(0, 1.1, 0.05), rotation=90)
+    plt.xticks(np.arange(0, upper_limit_watts, division_watts), rotation=90)
     plt.ylabel('Frequência (log)')
     plt.title('Distribuição da Similaridade de Jaccard')
     plt.savefig(f'D:\\Documentos\\data_and_code\\distribuicao_jaccard_watts_{raio}.png', dpi=300, bbox_inches='tight')
@@ -578,31 +584,19 @@ if __name__ == '__main__':
     ## Modelos que consideram a componente geográfica intrinsicamente
     ### Modelo de Waxman
 
-    grafo_waxman = nx.waxman_graph(NUMBER_OF_VERTICES, 0.04, 0.05, domain=(LAT_MIN, LAT_MAX, LON_MIN, LON_MAX))
+    x_min, y_min, _, _ = utm.from_latlon(LON_MIN, LAT_MIN)
+    x_max, y_max, _, _ = utm.from_latlon(LON_MAX, LAT_MAX)
+
+
+    grafo_waxman = nx.waxman_graph(NUMBER_OF_VERTICES, 0.04, 0.05, domain=(x_min, y_min, x_max, y_max))
 
     print("Métricas do grafo de Waxman")
     show_graph_metrics(grafo_waxman)
     
-    latitudes = np.random.uniform(LAT_MIN, LAT_MAX, NUMBER_OF_VERTICES)
-    longitudes = np.random.uniform(LON_MIN, LON_MAX, NUMBER_OF_VERTICES)
-
-    for i, node in enumerate(grafo_waxman.nodes()):
-        grafo_waxman.nodes[node]['lat'] = latitudes[i]
-        grafo_waxman.nodes[node]['long'] = longitudes[i]
-        
-    #### Criação do grafo geográfico
-    grafo_waxman = convert_geo_to_utm(grafo_waxman, 'lat', 'long')
-
-    for node in grafo_waxman.nodes():
-        lat = grafo_waxman.nodes[node]['median_Y']
-        long = grafo_waxman.nodes[node]['median_X']
-        grafo_waxman.nodes[node]['coords'] = (lat, long)
-
     geosocial_waxman = ga.GeoSocial(grafo_waxman, lat='lat', lon='long')
 
-    grafo_geo_waxman = geosocial_waxman.return_geographic_graph_by_radius(raio)
-    
-    print("Métricas do grafo geográfico de Waxman")
+    grafo_geo_waxman = geosocial_waxman.return_geographic_graph_by_radius(raio, coords_str='pos')
+
     show_graph_metrics(grafo_geo_waxman)
 
     #### Criação das comunidades
@@ -623,12 +617,15 @@ if __name__ == '__main__':
             jaccard_matrix_waxman[i][j] = jaccard_similarity(set(com_social), set(com_geo))
 
     jaccard_values_waxman = jaccard_matrix_waxman[jaccard_matrix_waxman !=0]
+    
+    upper_limit_waxman = np.max(jaccard_values_waxman)*1.2
+    division_waxman = np.max(jaccard_values_waxman)/5
 
     plt.figure(figsize=(15, 6))
     plt.hist(jaccard_values_waxman, bins=100, color='lightgreen', 
              edgecolor='black', log=True)
     plt.xlabel("Similaridade de Jaccard")
-    plt.xticks(np.arange(0, 0.2, 0.05), rotation=90)
+    plt.xticks(np.arange(0, upper_limit_watts, division_waxman), rotation=90)
     plt.ylabel('Frequência (log)')
     plt.title('Distribuição da Similaridade de Jaccard')
     plt.savefig(f'D:\\Documentos\\data_and_code\\distribuicao_jaccard_waxman_{raio}.png', dpi=300, bbox_inches='tight')

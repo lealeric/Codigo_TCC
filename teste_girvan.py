@@ -32,8 +32,7 @@ def random_subgraph_by_porcentage(graph: nx.DiGraph, porcentage: float = 0.1, co
     if connected_only:
         components = nx.weakly_connected_components(graph_return)
         biggest_component = max(components, key=len)
-        connected_graph = graph_return.subgraph(biggest_component)
-        return connected_graph
+        return graph_return.subgraph(biggest_component)
     
     return graph_return
 
